@@ -504,8 +504,12 @@ const Sync={
     S.clientes=(j.data.clientes||[]).filter(x=>x.id).map(normC);
     S.pedidos=(j.data.pedidos||[]).filter(x=>x.id).map(normP);
     S.separaciones=(j.data.separaciones||[]).filter(x=>x.id).map(normS);
+    const aj=(j.data.ajustes||[]).find(x=>String(x.id)==='general');
+    if(aj){try{const d=typeof aj.datos==='string'?JSON.parse(aj.datos):aj.datos;CAMPOS_COMPARTIDOS.forEach(k=>{if(d&&d[k]!==undefined)C()[k]=d[k]})}catch(e){}}
     guardarLocal();
+    const firma=JSON.stringify(j.data);const cambio=firma!==this.firma;this.firma=firma;return{cambio,aj:!!aj};
   },
+  subirAjustes(){const d={};CAMPOS_COMPARTIDOS.forEach(k=>d[k]=C()[k]);return this.push({accion:'guardar',tabla:'ajustes',registro:{id:'general',datos:JSON.stringify(d),modificado:new Date().toISOString()}})},
   async enviar(op){
     const r=await fetch(C().syncUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...op,clave:C().clave})});
     const j=await r.json(); if(!j.ok) throw new Error(j.error||'Error');
@@ -518,17 +522,25 @@ const Sync={
     return true;
   },
   async push(op){ if(!this.activo())return; S.pend.push(op); guardarLocal(); if(await this.vaciar()) this.estado('Sincronizado ✓','ok'); },
-  async sincronizar(silencioso){
+  async sincronizar(silencioso,auto){
     if(!this.activo()){this.estado('Solo este dispositivo');return}
-    this.estado('Sincronizando…');
+    if(this.ocupado)return;this.ocupado=true;
+    if(!auto)this.estado('Sincronizando…');
     try{
       if(!(await this.vaciar()))return;
-      await this.bajar(); renderTodo();
-      this.estado('Sincronizado ✓','ok');
+      const{cambio,aj}=await this.bajar(); if(cambio||!auto)renderTodo();
+      if(!aj)this.subirAjustes();
+      const hm=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+      this.estado('Al día ✓ '+hm,'ok');
       $('#syncInfo').textContent='Última sincronización: '+new Date().toLocaleString('es-AR');
     }catch(e){this.estado('Error de conexión','err'); if(!silencioso)toast('No se pudo sincronizar: '+e.message)}
+    finally{this.ocupado=false}
   }
 };
+const CAMPOS_COMPARTIDOS=['nombre','socios','productos','metaSep','diasSep','sepDesde','diasInactivo','msgWa'];
+// Actualización automática: cada 30 s mientras la página está abierta (no interrumpe si estás escribiendo)
+setInterval(()=>{if(document.hidden||!Sync.activo())return;const ae=document.activeElement;
+  if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;if(vista==='ajustes'||entregando)return;Sync.sincronizar(true,true)},30000);
 
 /* ========= Guardar / borrar ========= */
 function upsert(tabla,reg){
@@ -1061,23 +1073,37 @@ $('#saveAjustes').onclick=()=>{
   C().productos=prodTmp.filter(p=>p.nombre.trim()).map(p=>({nombre:p.nombre.trim(),menor:num(p.menor),mayor:num(p.mayor)}));
   C().metaSep=num($('#aMeta').value);C().diasSep=num($('#aDiasSep').value)||7;C().sepDesde=$('#aDesde').value||'';
   C().diasInactivo=num($('#aDias').value)||15;C().msgWa=$('#aMsg').value.trim()||MSG_DEF;
-  guardarLocal();renderTodo();toast('Ajustes guardados ✓');
+  guardarLocal();renderTodo();Sync.subirAjustes();toast(Sync.activo()?'Ajustes guardados ✓ · se comparten con todos':'Ajustes guardados ✓');
 };
 $('#conectar').onclick=async()=>{
-  const url=$('#aUrl').value.trim(),cl=$('#aClave').value.trim();
-  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){toast('La URL tiene que ser la del script de Google (…/exec)');return}
-  if(!cl){toast('Poné la clave');return}
+  const url=$('#aUrl').value.trim().replace(/\s/g,'').split('?')[0].split('#')[0].replace(/\/$/,''),cl=$('#aClave').value.trim();
+  $('#aUrl').value=url;$('#aClave').value=cl;
+  if(/googleusercontent/.test(url))return errSync('Esa no es la URL correcta: es la dirección que queda en el navegador después de probar el script. Copiala desde Apps Script → Implementar → Administrar implementaciones → URL de la aplicación web. Empieza con https://script.google.com/macros/s/ y termina en /exec.');
+  if(/\/dev$/.test(url))return errSync('Esa URL termina en /dev (es la de prueba). Usá la que termina en /exec: Implementar → Administrar implementaciones.');
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))return errSync('La URL tiene que empezar con https://script.google.com/macros/s/ y terminar en /exec. Revisá que no hayas copiado el "ID de implementación" en vez de la URL.');
+  if(!cl)return errSync('Falta la clave.');
+  if(/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))return errSync('Estás en la versión de prueba de Claude, que no puede conectarse a Google. Abrí tu link de GitHub (…github.io/…) y conectá desde ahí.');
+  $('#syncInfo').style.color='';$('#syncInfo').textContent='Conectando…';
   C().syncUrl=url;C().clave=cl;guardarLocal();
-  try{const r=await fetch(url+'?clave='+encodeURIComponent(cl));const j=await r.json();if(!j.ok)throw new Error(j.error);
-    const remotos=(j.data.gastos||[]).length+(j.data.ventas||[]).length+(j.data.objetivos||[]).length+(j.data.clientes||[]).length+(j.data.pedidos||[]).length+(j.data.separaciones||[]).length;
-    const locales=S.gastos.length+S.ventas.length+S.objetivos.length+S.clientes.length+S.pedidos.length+S.separaciones.length;
-    if(!remotos&&locales&&confirm(`La planilla está vacía y en este dispositivo tenés ${locales} registros. ¿Los subo a la planilla?`)){await subirTodo();}
-    else if(remotos&&locales&&!S.pend.length){toast('Conectado. Se usan los datos de la planilla compartida.')}
-    await Sync.sincronizar();
-  }catch(e){toast('No conecta: '+e.message);Sync.estado('Error de conexión','err')}
+  try{let r;try{r=await fetch(url+'?clave='+encodeURIComponent(cl))}catch(e){throw new Error('SIN_RED')}
+    let j;try{j=await r.json()}catch(e){throw new Error('NO_JSON')}
+    if(!j.ok)throw new Error(j.error);
+    const faltan=TABLAS.flatMap(t=>S[t].filter(x=>!(j.data[t]||[]).some(y=>String(y.id)===x.id)).map(x=>({accion:'guardar',tabla:t,registro:x})));
+    if(faltan.length&&confirm(`En este dispositivo hay ${faltan.length} registro${faltan.length>1?'s':''} que no están en la planilla compartida. ¿Los subo para que los vean todos?\n\n(Si alguien ya cargó lo mismo en otro celular, después revisá en Movimientos que no quede repetido.)`)){S.pend.push(...faltan);guardarLocal();Sync.estado('Subiendo…');await Sync.vaciar()}
+    if(!(j.data.ajustes||[]).length)await Sync.subirAjustes();
+    await Sync.sincronizar();toast('Conectado ✓ · se actualiza solo cada 30 segundos');
+    $('#syncInfo').style.color='var(--green)';$('#syncInfo').textContent='✓ Conectado. Última sincronización: '+new Date().toLocaleString('es-AR');
+  }catch(e){const m=e.message;
+    errSync(m==='Clave incorrecta'?'La clave no coincide con la del script. Tiene que ser exactamente igual a la de la línea const CLAVE (mayúsculas, minúsculas y sin espacios). Si la cambiaste en el script, guardá (Ctrl+S) y hacé Implementar → Administrar implementaciones → ✏️ → Nueva versión.'
+      :m==='SIN_RED'?'No se pudo llegar a Google. Revisá que tengas internet. Si estás seguro de que tenés, en Apps Script fijate que "Quién tiene acceso" diga "Cualquier usuario" y volvé a implementar con "Nueva versión".'
+      :m==='NO_JSON'?'Google respondió con una página en vez de datos. Suele pasar si el acceso no es "Cualquier usuario" o si la implementación quedó vieja: Implementar → Administrar implementaciones → ✏️ → Nueva versión → Implementar.'
+      :'No conecta: '+m);
+    C().syncUrl='';C().clave='';guardarLocal();Sync.estado('Solo este dispositivo')}
 };
+function errSync(t){const el=$('#syncInfo');el.style.color='var(--red)';el.textContent='⚠️ '+t;toast('No se pudo conectar: mirá el mensaje en rojo');el.scrollIntoView({behavior:'smooth',block:'center'})}
+const TABLAS=['gastos','ventas','objetivos','clientes','pedidos','separaciones'];
 async function subirTodo(){
-  ['gastos','ventas','objetivos','clientes','pedidos','separaciones'].forEach(t=>S[t].forEach(r=>S.pend.push({accion:'guardar',tabla:t,registro:r})));
+  TABLAS.forEach(t=>S[t].forEach(r=>S.pend.push({accion:'guardar',tabla:t,registro:r})));
   guardarLocal();Sync.estado('Subiendo…');await Sync.vaciar();
 }
 $('#subirLocal').onclick=async()=>{if(!Sync.activo()){toast('Primero conectá la planilla');return}if(confirm('Esto sube a la planilla todo lo que hay en este dispositivo (no se duplica lo que ya está). ¿Seguir?')){await subirTodo();await Sync.sincronizar()}};
