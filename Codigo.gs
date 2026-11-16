@@ -8,11 +8,13 @@
 const CLAVE = 'cambiar-esta-clave';
 
 const HOJAS = {
-  gastos:    ['id','fecha','categoria','detalle','cantidad','unidad','monto','pagadoPor','creado','modificado'],
-  ventas:    ['id','fecha','producto','canal','kg','precioKg','total','cliente','cobrado','vendidoPor','creado','modificado'],
-  objetivos: ['id','tipo','periodo','metaVentas','metaGanancia','metaKg','nota','creado','modificado']
+  gastos:    ['id','fecha','categoria','detalle','cantidad','unidad','monto','pagadoPor','medioPago','creado','modificado'],
+  ventas:    ['id','fecha','producto','canal','kg','precioKg','total','cliente','cobrado','vendidoPor','medioPago','creado','modificado'],
+  objetivos: ['id','tipo','periodo','metaVentas','metaGanancia','metaKg','nota','creado','modificado'],
+  clientes:  ['id','nombre','telefono','tipo','zona','nota','creado','modificado'],
+  pedidos:   ['id','cliente','fechaEntrega','canal','items','estado','nota','ventaIds','entregado','creado','modificado']
 };
-const COLUMNAS_TEXTO = ['id','fecha','periodo','creado','modificado'];
+const COLUMNAS_TEXTO = ['id','fecha','periodo','telefono','fechaEntrega','entregado','items','ventaIds','creado','modificado'];
 
 function doGet(e) {
   if ((e.parameter.clave || '') !== CLAVE) return json({ ok: false, error: 'Clave incorrecta' });
@@ -29,12 +31,17 @@ function doPost(e) {
     if (b.clave !== CLAVE) return json({ ok: false, error: 'Clave incorrecta' });
     if (!HOJAS[b.tabla]) return json({ ok: false, error: 'Tabla desconocida' });
     const sh = hoja(b.tabla);
-    const cols = HOJAS[b.tabla];
+    const cols = encabezado(sh);
     const id = b.id || (b.registro && b.registro.id);
     const fila = buscar(sh, id);
 
     if (b.accion === 'guardar') {
-      const valores = [cols.map(c => b.registro[c] === undefined ? '' : b.registro[c])];
+      const valores = [cols.map(c => {
+        const v = b.registro[c];
+        if (v === undefined || v === null) return '';
+        if (typeof v === 'object') return JSON.stringify(v);
+        return v;
+      })];
       const destino = fila || sh.getLastRow() + 1;
       sh.getRange(destino, 1, 1, cols.length).setValues(valores);
     } else if (b.accion === 'borrar') {
@@ -48,24 +55,33 @@ function doPost(e) {
   }
 }
 
+// Crea la hoja si no existe y agrega al final las columnas que falten (sirve si actualizás el código más adelante).
 function hoja(nombre) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(nombre);
   if (!sh) {
     sh = ss.insertSheet(nombre);
-    const cols = HOJAS[nombre];
-    sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
     sh.setFrozenRows(1);
-    cols.forEach((c, i) => {
-      if (COLUMNAS_TEXTO.indexOf(c) >= 0) sh.getRange(1, i + 1, sh.getMaxRows(), 1).setNumberFormat('@');
-    });
   }
+  const actuales = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String) : [];
+  HOJAS[nombre].forEach(c => {
+    if (actuales.indexOf(c) < 0) {
+      const col = actuales.length + 1;
+      sh.getRange(1, col).setValue(c).setFontWeight('bold');
+      if (COLUMNAS_TEXTO.indexOf(c) >= 0) sh.getRange(1, col, sh.getMaxRows(), 1).setNumberFormat('@');
+      actuales.push(c);
+    }
+  });
   return sh;
+}
+
+function encabezado(sh) {
+  return sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
 }
 
 function leer(nombre) {
   const sh = hoja(nombre);
-  const cols = HOJAS[nombre];
+  const cols = encabezado(sh);
   const n = sh.getLastRow();
   if (n < 2) return [];
   const tz = Session.getScriptTimeZone();
@@ -94,7 +110,7 @@ function json(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Corré esta función una vez desde el editor (botón ▶) para crear las 3 hojas y dar permisos.
+// Corré esta función una vez desde el editor (botón ▶) para crear las hojas y dar permisos.
 function prepararPlanilla() {
   Object.keys(HOJAS).forEach(hoja);
 }

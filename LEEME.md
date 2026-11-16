@@ -14,7 +14,7 @@ Así todos cargan y ven lo mismo, y además queda todo en una planilla de Google
 2. Menú **Extensiones → Apps Script**.
 3. Borrá lo que aparece y pegá todo el contenido de `Codigo.gs`.
 4. En la línea `const CLAVE = 'cambiar-esta-clave';` poné una clave propia (ej. `milas-reyes-2026`). Guardá (ícono del disquete).
-5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas` y `objetivos`.
+5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas`, `objetivos`, `clientes` y `pedidos`.
 6. Tocá **Implementar → Nueva implementación** → tipo **Aplicación web**:
    - Ejecutar como: **Yo**
    - Quién tiene acceso: **Cualquier usuario**
@@ -40,6 +40,9 @@ No subas `Codigo.gs` con tu clave real a un repositorio público.
 ## Cómo calcula
 
 - **Ganancia** = lo vendido − lo gastado en ese período (según la fecha de cada carga).
+- **Caja / "Hoy hay"** = todo lo cobrado menos todo lo gastado, separado por forma de pago (efectivo o transferencia). Es lo que debería haber en cada lugar.
+- **Pedidos**: cuando tocás *Entregar* y confirmás, el pedido se convierte solo en venta (una por producto), con la fecha de hoy.
+- **Clientes que dejaron de comprar**: aparecen los que hace más de X días (lo elegís en Ajustes) que no compran y no tienen pedido pendiente, con un botón para mandarles un WhatsApp ya escrito.
 - **Te deben** = ventas marcadas como "No, me debe". Cuando te paguen, editá la venta y marcala como cobrada.
 - **Costo del pollo por kg** sale de los gastos de "Pollo / pechugas" donde pusiste la cantidad en kg.
 - En **Objetivos**, la rayita negra en la barra marca dónde deberías estar hoy para llegar a la meta a tiempo, y te dice a qué ritmo cerrás el período.
