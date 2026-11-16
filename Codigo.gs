@@ -12,7 +12,7 @@ const HOJAS = {
   ventas:    ['id','fecha','producto','canal','kg','precioKg','total','cliente','cobrado','vendidoPor','medioPago','creado','modificado'],
   objetivos: ['id','tipo','periodo','metaVentas','metaGanancia','metaKg','nota','creado','modificado'],
   clientes:  ['id','nombre','telefono','tipo','zona','nota','creado','modificado'],
-  pedidos:   ['id','cliente','fechaEntrega','canal','items','estado','nota','ventaIds','entregado','creado','modificado'],
+  pedidos:   ['id','cliente','fechaEntrega','canal','items','estado','nota','cargadoPor','ventaIds','entregado','creado','modificado'],
   separaciones: ['id','fecha','accion','monto','medioPago','quien','nota','creado','modificado']
 };
 const COLUMNAS_TEXTO = ['id','fecha','periodo','telefono','fechaEntrega','entregado','items','ventaIds','creado','modificado'];
