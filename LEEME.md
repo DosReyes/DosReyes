@@ -14,7 +14,7 @@ Así todos cargan y ven lo mismo, y además queda todo en una planilla de Google
 2. Menú **Extensiones → Apps Script**.
 3. Borrá lo que aparece y pegá todo el contenido de `Codigo.gs`.
 4. En la línea `const CLAVE = 'cambiar-esta-clave';` poné una clave propia (ej. `milas-reyes-2026`). Guardá (ícono del disquete).
-5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas`, `objetivos`, `clientes` y `pedidos`.
+5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas`, `objetivos`, `clientes`, `pedidos` y `separaciones`.
 6. Tocá **Implementar → Nueva implementación** → tipo **Aplicación web**:
    - Ejecutar como: **Yo**
    - Quién tiene acceso: **Cualquier usuario**
@@ -43,6 +43,8 @@ No subas `Codigo.gs` con tu clave real a un repositorio público.
 - **Caja / "Hoy hay"** = todo lo cobrado menos todo lo gastado, separado por forma de pago (efectivo o transferencia). Es lo que debería haber en cada lugar.
 - **Pedidos**: cuando tocás *Entregar* y confirmás, el pedido se convierte solo en venta (una por producto), con la fecha de hoy.
 - **Clientes que dejaron de comprar**: aparecen los que hace más de X días (lo elegís en Ajustes) que no compran y no tienen pedido pendiente, con un botón para mandarles un WhatsApp ya escrito.
+- **Plata separada (fondo)**: separar NO es un gasto, así que no baja la ganancia. La plata pasa de la caja (efectivo o transferencia) al fondo, que figura en su propia fila de la caja. La página calcula cuánto deberías llevar separado según el monto por día (Ajustes) y te avisa si falta separar hoy. "Sacar del fondo" la devuelve a la caja.
+- **Ventas en gramos**: podés cargar en kg o en g (100 g, 250 g, 500 g…). El precio siempre es por kg y el total se calcula solo.
 - **Te deben** = ventas marcadas como "No, me debe". Cuando te paguen, editá la venta y marcala como cobrada.
 - **Costo del pollo por kg** sale de los gastos de "Pollo / pechugas" donde pusiste la cantidad en kg.
 - En **Objetivos**, la rayita negra en la barra marca dónde deberías estar hoy para llegar a la meta a tiempo, y te dice a qué ritmo cerrás el período.
