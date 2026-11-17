@@ -28,13 +28,20 @@ Así todos cargan y ven lo mismo, y además queda todo guardado en una planilla 
 2. Menú **Extensiones → Apps Script**.
 3. Borrá lo que aparece y pegá todo el contenido de `Codigo.gs`.
 4. En la línea `const CLAVE = 'cambiar-esta-clave';` poné una clave propia (por ejemplo `milas-reyes-2026`). Guardá (ícono del disquete).
-5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas`, `objetivos`, `clientes`, `pedidos` y `separaciones`.
+5. Arriba, elegí la función **prepararPlanilla** y tocá **▶ Ejecutar**. Google te va a pedir permisos: aceptá (si dice "app no verificada", tocá *Configuración avanzada → Ir a…*). Se crean las hojas `gastos`, `ventas`, `objetivos`, `clientes`, `pedidos`, `separaciones`, `ajustes` y `cajas`.
 6. Tocá **Implementar → Nueva implementación** → tipo **Aplicación web**:
    - Ejecutar como: **Yo**
    - Quién tiene acceso: **Cualquier usuario**
 7. Copiá la **URL de la aplicación web** (termina en `/exec`).
 8. En la página: **Ajustes → Compartir con tus socios** → pegá la URL y la clave → **Conectar y sincronizar**.
-9. Pasales la URL y la clave a tu hermano y a los socios para que hagan lo mismo en su celular.
+9. Pasales la URL y la clave a tu hermano y a los socios para que hagan lo mismo en su celular. **Cada persona tiene que conectarse una vez** en su teléfono o compu.
+
+Una vez conectados:
+- Lo que carga uno les aparece a los demás en menos de 30 segundos (la página se actualiza sola mientras está abierta, sin interrumpir si estás escribiendo). Para ver los cambios al instante, tocá el cartelito verde de arriba ("Al día ✓").
+- Los **ajustes** (socios, productos, precios, monto a separar, mensaje de WhatsApp) también se comparten: si uno cambia un precio, cambia para todos.
+- Si alguien tenía cosas cargadas en su celular antes de conectarse, la página le pregunta si las sube a la planilla para que las vean todos. Si dos personas habían cargado lo mismo, después revisen en Movimientos que no quede repetido.
+- La primera persona que se conecta es la que define los ajustes compartidos: conviene que sea la que ya tiene los precios y los socios bien puestos.
+- Si no hay internet, lo que cargues queda guardado y se sube solo cuando vuelve la conexión.
 
 Si más adelante cambiás el código del script: **Implementar → Administrar implementaciones → editar → Versión nueva**. Así la URL sigue siendo la misma. Las columnas nuevas se agregan solas.
 
@@ -55,6 +62,7 @@ No subas `Codigo.gs` con tu clave real a un repositorio público.
 
 ## Cómo calcula
 
+- **Caja del día (apertura y cierre)**: a la mañana cargás con cuánto efectivo arrancás; durante el día la página suma lo cobrado en efectivo y resta los gastos en efectivo y lo separado; a la noche contás la plata y te dice si coincide, sobra o falta. Las transferencias se controlan aparte (opcional: comparás con lo que dice el banco). La plata con la que arrancaste NO es ganancia.
 - **Ganancia** = lo vendido − lo gastado en ese período (según la fecha de cada carga).
 - **Te deben** = ventas marcadas como "No, me debe". Cuando te paguen, editá la venta y marcala como cobrada.
 - **Caja / "Hoy hay"** = todo lo cobrado menos todo lo gastado, separado en efectivo y transferencia, sin contar lo que pasaste al fondo (eso figura en su propia fila).
